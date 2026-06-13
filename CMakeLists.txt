@@ -44,7 +44,7 @@ include_directories(${stb_image_SOURCE_DIR})
 
 # Lista de pastas dos projetos (devem corresponder aos nomes dos diretórios dentro de src/)
 set(EXERCISES
-    TrabalhoGA
+    TrabalhoGB
 )
 
 add_compile_options(-Wno-pragmas)
