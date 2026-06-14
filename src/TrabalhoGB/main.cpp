@@ -151,6 +151,8 @@ void scaleMesh(Mesh &mesh, bool up);
 
 void transladeMesh(Mesh &mesh, bool up);
 
+void applyReflectorsChange(GLFWwindow* window, Mesh &mesh, bool shouldGoUp);
+
 // Função MAIN
 int main()
 {
@@ -250,13 +252,15 @@ int main()
 		// Configurações das transformação dos objetos e da luz.
 		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
 			applyTransform(env.meshes[active_mesh], true);
-			//applyLightChange(window, env.light, true);
+			applyLightChange(window, env.light, true);
+			applyReflectorsChange(window, env.meshes[active_mesh], true);
 		}
 
 		// Configurações das transformação dos objetos e da luz.
 		if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
 			applyTransform(env.meshes[active_mesh], false);
-			//applyLightChange(window, env.light, false);
+			applyLightChange(window, env.light, false);
+			applyReflectorsChange(window, env.meshes[active_mesh], false);
 		}
 
 		// Mandando a posição da luz para o shader.
@@ -358,7 +362,6 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     camera.processMouseMovement(xoffset, yoffset);
 }
 
-/*
 void applyLightChange(GLFWwindow* window, Light &light, bool shouldGoUp)
 {
 	float delta = 0.1f * (shouldGoUp ? 1 : -1);
@@ -372,23 +375,45 @@ void applyLightChange(GLFWwindow* window, Light &light, bool shouldGoUp)
 		if (axisZ)
 			light.position.z += delta;
 	}
+}
+
+void applyReflectorsChange(GLFWwindow* window, Mesh &mesh, bool shouldGoUp)
+{
+	float delta = 1.0f * (shouldGoUp ? 1 : -1);
 
 	// Aumenta ou diminui os coeficientes de iluminação (ka, kd, ks) dependendo do valor de "shouldGoUp"
 	if (changeKa) {
-		light.ka += delta * 0.1f;
-		if (light.ka < 0.0f) light.ka = 0.0f; // Evita valores negativos
+		mesh.ka += delta * 0.1f;
+		if (mesh.ka.b < 0.0f) {
+			mesh.ka.r = 0.0f;
+			mesh.ka.g = 0.0f;
+			mesh.ka.b = 0.0f;
+		}
 	}
 
 	if (changeKd) {
-		light.kd += delta * 0.1f;
-		if (light.kd < 0.0f) light.kd = 0.0f; // Evita valores negativos
+		mesh.kd += delta * 0.1f;
+		if (mesh.kd.b < 0.0f) {
+			mesh.kd.r = 0.0f;
+			mesh.kd.g = 0.0f;
+			mesh.kd.b = 0.0f;
+		}
 	}
 
 	if (changeKs) {
-		light.ks += delta * 0.1f;
-		if (light.ks < 0.0f) light.ks = 0.0f; // Evita valores negativos
+		mesh.ks += delta * 0.1f;
+		if (mesh.ks.b < 0.0f) {
+			mesh.ks.r = 0.0f;
+			mesh.ks.g = 0.0f;
+			mesh.ks.b = 0.0f;
+		}
 	}
-}*/
+
+	if (changeQ) {
+		mesh.q += delta;
+		if (mesh.q < 1.0f) mesh.q = 1.0f; // Evita valores menores que 1
+	}
+}
 
 void applyTransform(Mesh &mesh, bool shouldGoUp)
 {
