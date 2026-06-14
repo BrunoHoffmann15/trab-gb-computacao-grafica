@@ -14,6 +14,7 @@ class Mesh {
         // OpenGL buffers
         GLuint VAO;
         GLuint VBO;
+        GLuint texID;
         int nVertices;
 
         // Transformações
@@ -30,11 +31,17 @@ class Mesh {
         glm::vec3 ks; // Coeficiente de reflexão especular
         float q; // Exponente de brilho para reflexão especular
 
+        // Textura
+        string texturePath; // Caminho para a textura do mesh
+
         // Carrega um arquivo OBJ simples (sem texturas, apenas vértices, normais e cores) e preenche os buffers do mesh
         void loadObj(string filePath);
 
         // Carrega um arquivo .MTL para obter as informações de material (ka, kd, ks, q) e cor do mesh
         void loadMtl(string filePath);
+
+        // Carrega texturas
+        void loadTexture();
 
         // Construtor para inicializar os atributos do mesh
         Mesh(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale) {

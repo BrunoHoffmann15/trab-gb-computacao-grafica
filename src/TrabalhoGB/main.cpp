@@ -46,7 +46,7 @@ const GLchar* vertexShaderSource = R"glsl(#version 450
 layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 color;
 layout (location = 2) in vec3 normal;
-layout (location = 3) in vec2 texCoord;
+layout (location = 3) in vec2 texc;
 
 uniform mat4 model;
 uniform mat4 projection;
@@ -55,6 +55,7 @@ uniform mat4 view;
 out vec4 finalColor;
 out vec3 fragPos;
 out vec3 scaledNormal;
+out vec2 texcoord;
 
 void main()
 {
@@ -62,6 +63,7 @@ void main()
     finalColor = vec4(color, 1.0);
     fragPos = vec3(model * vec4(position, 1.0)); 
     scaledNormal = mat3(transpose(inverse(model))) * normal;
+	texcoord = vec2(texc.s, 1.0 - texc.t);
 }
 )glsl";
 
@@ -70,15 +72,19 @@ const GLchar* fragmentShaderSource = R"glsl(#version 450
 in vec4 finalColor;
 in vec3 fragPos;
 in vec3 scaledNormal;
+in vec2 texcoord;
+
+uniform sampler2D texBuffer;
 
 uniform bool isWireframe;
 uniform vec3 wireColor;
 uniform vec3 objectColor;
 
 // Propriedades da superfície/material
-uniform float ka;
-uniform float kd;
-uniform float ks, q;
+uniform vec3 ka;
+uniform vec3 kd;
+uniform vec3 ks;
+uniform float q;
 
 // Propriedades da fonte de luz
 uniform vec3 lightPos;
@@ -104,20 +110,10 @@ void main()
     float spec = max(dot(R,V),0.0);
     spec = pow(spec,q);
     vec3 specular = ks * spec * lightColor;
-
-    // Mistura a cor do vértice (branco) com a cor do objeto (C++)
-    vec4 actualColor = finalColor * vec4(objectColor, 1.0);
-
-    // Define qual será a cor base (preto se for wireframe, cor real se for sólido)
-    vec4 baseColor;
-    if (isWireframe) {
-        baseColor = vec4(wireColor, 1.0);
-    } else {
-        baseColor = actualColor;
-    }
+	vec4 texColor = texture(texBuffer, texcoord);
 
     // Aplica a iluminação na cor escolhida
-    color = (vec4(ambient, 1.0) + vec4(diffuse, 1.0)) * baseColor + vec4(specular, 1.0);
+    color = (vec4(ambient, 1.0) + vec4(diffuse, 1.0)) * texColor + vec4(specular, 1.0);
 }
 )glsl";
 
@@ -460,10 +456,22 @@ void renderMeshes(std::vector<Mesh> &meshes, GLuint shaderID)
 		
 		glUniformMatrix4fv(glGetUniformLocation(shaderID, "model"), 1, GL_FALSE, glm::value_ptr(modelMesh));
 		glUniform3f(glGetUniformLocation(shaderID, "objectColor"), mesh.color.x, mesh.color.y, mesh.color.z);
+		glUniform3f(glGetUniformLocation(shaderID, "ka"), mesh.ka.x, mesh.ka.y, mesh.ka.z);
+		glUniform3f(glGetUniformLocation(shaderID, "kd"), mesh.kd.x, mesh.kd.y, mesh.kd.z);
+		glUniform3f(glGetUniformLocation(shaderID, "ks"), mesh.ks.x, mesh.ks.y, mesh.ks.z);
+		glUniform1f(glGetUniformLocation(shaderID, "q"), mesh.q);
 		
 		glBindVertexArray(mesh.VAO);
 		glDrawArrays(GL_TRIANGLES, 0, mesh.nVertices);
 		glBindVertexArray(0);
+
+        // Habilita a textura
+		glActiveTexture(GL_TEXTURE0);
+		// Associa a textura da Suzzane ao buffer de textura 0
+		glBindTexture(GL_TEXTURE_2D, mesh.texID);
+		// Envia a informação de textura para o shader
+		glUniform1i(glGetUniformLocation(shaderID, "texBuffer"), 0);
+
 	}
 }
 

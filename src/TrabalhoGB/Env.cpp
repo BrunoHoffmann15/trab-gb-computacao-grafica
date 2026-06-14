@@ -1,13 +1,43 @@
 #include "Env.h"
 #include <fstream>
 #include <iostream>
-#include <fstream>
 #include <stdexcept>
 #include <json.hpp>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 using namespace std;
 
 using json = nlohmann::json;
+
+void Mesh::loadTexture()
+{
+    // Carregar a imagem usando stb_image
+    int nrChannels, imgWidth, imgHeight;
+    unsigned char* data = stbi_load(this->texturePath.c_str(), &imgWidth, &imgHeight, &nrChannels, 0);
+    if (!data) {
+        throw runtime_error("Failed to load texture: " + this->texturePath);
+    }
+
+    // Gerar e configurar a textura OpenGL
+    glGenTextures(1, &this->texID);
+    glBindTexture(GL_TEXTURE_2D, this->texID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Determinar o formato da textura com base no número de canais
+    GLenum format = (nrChannels == 4) ? GL_RGBA : GL_RGB;
+
+    // Carregar os dados da textura para a GPU
+    glTexImage2D(GL_TEXTURE_2D, 0, format, imgWidth, imgHeight, 0, format, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Liberar os dados da imagem da memória
+    stbi_image_free(data);
+}
 
 void Mesh::loadObj(string filePath)
 {
@@ -155,7 +185,10 @@ void Mesh::loadMtl(string filePath)
         else if (word == "Ns") 
         {
             ssline >> this->q;
-        } 
+        } else if (word == "map_Kd") 
+        {
+            ssline >> this->texturePath;
+        }
     }
 
     arqEntrada.close();
@@ -193,6 +226,7 @@ void Env::loadEnvironment(string envPath)
 
         mesh.loadObj(objPath);
         mesh.loadMtl(mtlPath);
+        mesh.loadTexture();
 
         meshes.push_back(mesh);
     }
