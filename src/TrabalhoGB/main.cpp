@@ -25,35 +25,17 @@ using namespace std;
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+// Ambiente
+#include "Env.h"
+
 // Camera
 #include "Camera.h"
-
-// Estrutura Mesh para controle de objeto;
-struct Mesh 
-{
-    GLuint VAO;
-	GLuint VBO;
-	glm::vec3 position;
-	glm::vec3 rotation;
-	glm::vec3 scale; 
-	int nVertices;
-	glm::vec3 color;
-};
-
-// Estrutura Light para controle da luz.
-struct Light {
-	glm::vec3 position;
-	glm::vec3 color;
-	float ka, kd, ks;
-};
-
 
 // Protótipo da função de callback de teclado
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 
 // Protótipos das funções
 int setupShader();
-Mesh loadSimpleOBJ(string filePATH);
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
 
 // Dimensões da janela (pode ser alterado em tempo de execução)
@@ -226,34 +208,10 @@ int main()
     
     glEnable(GL_DEPTH_TEST);
 
-	// Definição dos objetos e seus atributos.
-	std::vector<Mesh> meshes;
 
-	Mesh m1 = loadSimpleOBJ("../assets/Suzanne.obj");
-	m1.position = glm::vec3(-1.0, 0.0, 0.0);
-	m1.rotation = glm::vec3(0.0, 180.0, 0.0);
-	m1.scale = glm::vec3(0.5, 0.5, 0.5);
-	m1.color = glm::vec3(1.0, 0.0, 0.0); // Red
+	Env env;
 
-	meshes.push_back(m1);
-
-	Mesh m2 = loadSimpleOBJ("../assets/bunny.obj");
-	m2.position = glm::vec3(0.8, 0.0, 0.0);
-	m2.rotation = glm::vec3(0.0, 180.0, 0.0);
-	m2.scale = glm::vec3(0.7, 0.7, 0.7);
-	m2.color = glm::vec3(0.5, 0.5, 1.0); // Violet
-
-	meshes.push_back(m2);
-
-	// Mandando as infos de iluminação para o shader
-	float ka = 0.2, kd = 0.5, ks = 0.5, q = 10.0;
-
-	Light light;
-	light.position = glm::vec3(-0.5, 1.0, 0.0);
-	light.color = glm::vec3(1.0, 1.0, 1.0);
-	light.ka = ka;
-	light.kd = kd;
-	light.ks = ks;
+	env.loadEnvironment("../assets/env.json");
 
 	// Método para captura do movimento do mouse.
 	glfwSetCursorPosCallback(window, mouse_callback);
@@ -295,25 +253,25 @@ int main()
 
 		// Configurações das transformação dos objetos e da luz.
 		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-			applyTransform(meshes[active_mesh], true);
-			applyLightChange(window, light, true);
+			applyTransform(env.meshes[active_mesh], true);
+			//applyLightChange(window, env.light, true);
 		}
 
 		// Configurações das transformação dos objetos e da luz.
 		if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-			applyTransform(meshes[active_mesh], false);
-			applyLightChange(window, light, false);
+			applyTransform(env.meshes[active_mesh], false);
+			//applyLightChange(window, env.light, false);
 		}
 
 		// Mandando a posição da luz para o shader.
-		glUniform3f(glGetUniformLocation(shaderID, "lightPos"),light.position.x,light.position.y,light.position.z);
-		glUniform3f(glGetUniformLocation(shaderID, "lightColor"),light.color.x,light.color.y,light.color.z);
+		glUniform3f(glGetUniformLocation(shaderID, "lightPos"),env.light.position.x,env.light.position.y,env.light.position.z);
+		glUniform3f(glGetUniformLocation(shaderID, "lightColor"),env.light.color.x,env.light.color.y,env.light.color.z);
 
 		// Mandando variáveis de iluminação para o shader.
-		glUniform1f(glGetUniformLocation(shaderID, "ka"),light.ka);
-		glUniform1f(glGetUniformLocation(shaderID, "kd"),light.kd);
-		glUniform1f(glGetUniformLocation(shaderID, "ks"),light.ks);
-		glUniform1f(glGetUniformLocation(shaderID, "q"),q);
+		//glUniform1f(glGetUniformLocation(shaderID, "ka"),env.light.ka);
+		//glUniform1f(glGetUniformLocation(shaderID, "kd"),env.light.kd);
+		//glUniform1f(glGetUniformLocation(shaderID, "ks"),env.light.ks);
+		//glUniform1f(glGetUniformLocation(shaderID, "q"),env.light.q);
 
     
 		glUniformMatrix4fv(glGetUniformLocation(shaderID, "model"), 1, GL_FALSE, glm::value_ptr(model));
@@ -327,7 +285,7 @@ int main()
 		// Primeiro: renderizar solido
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glUniform1i(glGetUniformLocation(shaderID, "isWireframe"), GL_FALSE);
-		renderMeshes(meshes, shaderID);
+		renderMeshes(env.meshes, shaderID);
 
 		// 2. Se a opção estiver ativa, desenha as linhas por cima
 		if (showWireframe) {
@@ -338,7 +296,7 @@ int main()
 			
 			glUniform1i(glGetUniformLocation(shaderID, "isWireframe"), GL_TRUE);
 			glUniform3f(glGetUniformLocation(shaderID, "wireColor"), 0.0f, 0.0f, 0.0f);
-			renderMeshes(meshes, shaderID);
+			renderMeshes(env.meshes, shaderID);
 			
 			glDisable(GL_POLYGON_OFFSET_LINE);
 		}
@@ -349,7 +307,7 @@ int main()
 
 
 	// Desaloca o VAO do buffer.
-	for (auto& mesh : meshes) 
+	for (auto& mesh : env.meshes) 
 	{
 		glDeleteVertexArrays(1, &mesh.VAO);
 	}
@@ -404,6 +362,7 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     camera.processMouseMovement(xoffset, yoffset);
 }
 
+/*
 void applyLightChange(GLFWwindow* window, Light &light, bool shouldGoUp)
 {
 	float delta = 0.1f * (shouldGoUp ? 1 : -1);
@@ -433,7 +392,7 @@ void applyLightChange(GLFWwindow* window, Light &light, bool shouldGoUp)
 		light.ks += delta * 0.1f;
 		if (light.ks < 0.0f) light.ks = 0.0f; // Evita valores negativos
 	}
-}
+}*/
 
 void applyTransform(Mesh &mesh, bool shouldGoUp)
 {
@@ -640,124 +599,4 @@ int setupShader()
 	glDeleteShader(fragmentShader);
 
 	return shaderProgram;
-}
-
-// Função para carregar um arquivo .obj simples;
-// Cria um Mesh a partir do arquivo, gerando o VAO e VBO correspondentes, e retorna esse Mesh para ser renderizado posteriormente.
-Mesh loadSimpleOBJ(string filePATH)
- {
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::vec2> texCoords;
-    std::vector<glm::vec3> normals;
-    std::vector<GLfloat> vBuffer;
-    glm::vec3 color = glm::vec3(1.0, 1.0, 1.0);
-
-    std::ifstream arqEntrada(filePATH.c_str());
-    if (!arqEntrada.is_open()) 
-	{
-        std::cerr << "Erro ao tentar ler o arquivo " << filePATH << std::endl;
-		exit(EXIT_FAILURE);
-	}
-
-    std::string line;
-    while (std::getline(arqEntrada, line)) 
-	{
-        std::istringstream ssline(line);
-        std::string word;
-        ssline >> word;
-
-        if (word == "v") 
-		{
-            glm::vec3 vertice;
-            ssline >> vertice.x >> vertice.y >> vertice.z;
-            vertices.push_back(vertice);
-        } 
-        else if (word == "vt") 
-		{
-            glm::vec2 vt;
-            ssline >> vt.s >> vt.t;
-            texCoords.push_back(vt);
-        } 
-        else if (word == "vn") 
-		{
-            glm::vec3 normal;
-            ssline >> normal.x >> normal.y >> normal.z;
-            normals.push_back(normal);
-        } 
-        else if (word == "f")
-		 {
-            while (ssline >> word) 
-			{
-                int vi = 0, ti = 0, ni = 0;
-                std::istringstream ss(word);
-                std::string index;
-
-                if (std::getline(ss, index, '/')) vi = !index.empty() ? std::stoi(index) - 1 : 0;
-                if (std::getline(ss, index, '/')) ti = !index.empty() ? std::stoi(index) - 1 : 0;
-                if (std::getline(ss, index)) ni = !index.empty() ? std::stoi(index) - 1 : 0;
-
-                vBuffer.push_back(vertices[vi].x);
-                vBuffer.push_back(vertices[vi].y);
-                vBuffer.push_back(vertices[vi].z);
-                
-                vBuffer.push_back(color.r); // Cor R
-                vBuffer.push_back(color.g); // Cor G
-                vBuffer.push_back(color.b); // Cor B
-                
-                // Trava de segurança para texturas
-                if (!texCoords.empty()) {
-                    vBuffer.push_back(texCoords[ti].s); 
-                    vBuffer.push_back(texCoords[ti].t); 
-                } else {
-                    vBuffer.push_back(0.0f); 
-                    vBuffer.push_back(0.0f); 
-                }
-
-                vBuffer.push_back(normals[ni].x);   // Normal X
-                vBuffer.push_back(normals[ni].y);   // Normal Y
-                vBuffer.push_back(normals[ni].z);   // Normal Z
-            }
-        }
-    }
-
-    arqEntrada.close();
-
-    std::cout << "Gerando o buffer de geometria..." << std::endl;
-    GLuint VBO, VAO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, vBuffer.size() * sizeof(GLfloat), vBuffer.data(), GL_STATIC_DRAW);
-    
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-    
-    // Única declaração de Stride (11 floats agora)
-    GLsizei stride = 11 * sizeof(GLfloat);
-
-    // 0: Posição
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (GLvoid*)0);
-    glEnableVertexAttribArray(0);
-
-    // 1: Cor
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (GLvoid*)(3 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(1);
-
-    // 2: Normal
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride, (GLvoid*)(8 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(2);
-
-    // 3: Coordenada de Textura
-    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, stride, (GLvoid*)(6 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(3);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-
-	Mesh mesh;
-
-	mesh.VAO = VAO;
-	mesh.VBO = VBO;
-	mesh.nVertices = vBuffer.size() / 11;
-
-    return mesh;
 }
