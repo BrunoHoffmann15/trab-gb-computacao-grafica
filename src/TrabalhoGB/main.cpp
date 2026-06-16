@@ -135,6 +135,8 @@ float lastX = WIDTH / 2.0f;  // 300.0f
 float lastY = HEIGHT / 2.0f; // 300.0f
 bool firstMouse = true;
 
+int total_meshes = 1;
+
 void cameraHandler(GLFWwindow* window, Camera &camera, float deltaTime);
 
 void applyLightChange(GLFWwindow* window, Light &light, bool shouldGoUp);
@@ -152,6 +154,20 @@ void scaleMesh(Mesh &mesh, bool up);
 void transladeMesh(Mesh &mesh, bool up);
 
 void applyReflectorsChange(GLFWwindow* window, Mesh &mesh, bool shouldGoUp);
+
+glm::vec3 calculateBezierPoint(float t, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3) {
+    float u = 1.0f - t;
+    float tt = t * t;
+    float uu = u * u;
+    float uuu = uu * u;
+    float ttt = tt * t;
+
+    glm::vec3 p = uuu * p0; 
+    p += 3 * uu * t * p1;   
+    p += 3 * u * tt * p2;   
+    p += ttt * p3;          
+    return p;
+}
 
 // Função MAIN
 int main()
@@ -209,7 +225,15 @@ int main()
 
 	Env env;
 
-	env.loadEnvironment("../assets/env.json");
+    env.loadEnvironment("../assets/env.json");
+    total_meshes = env.meshes.size();
+
+    //Sobrescreve a câmera hardcoded com a câmera do JSON --
+    camera = Camera(env.cameraConfig.position, glm::vec3(0.0,1.0,0.0), env.cameraConfig.yaw, env.cameraConfig.pitch);
+
+    // Sobrescreve a matriz de projeção com o FOV (frustum) que veio do JSON
+    projection = glm::perspective(glm::radians(env.cameraConfig.fov), (float)WIDTH/(float)HEIGHT, 0.1f, 100.0f);
+    glUniformMatrix4fv(glGetUniformLocation(shaderID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
 	// Método para captura do movimento do mouse.
 	glfwSetCursorPosCallback(window, mouse_callback);
@@ -285,6 +309,22 @@ int main()
 		// Primeiro: renderizar solido
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glUniform1i(glGetUniformLocation(shaderID, "isWireframe"), GL_FALSE);
+    float time = glfwGetTime();
+
+    for (auto& mesh : env.meshes) {
+        if (mesh.isAnimated) {
+            // Pontos de controlo da curva
+            glm::vec3 p0(-3.0f, 0.0f, 0.0f);
+            glm::vec3 p1(-1.0f, 3.0f, -2.0f);
+            glm::vec3 p2(1.0f, -3.0f, 2.0f);
+            glm::vec3 p3(3.0f, 0.0f, 0.0f);
+
+            // O valor 't' deve oscilar entre 0 e 1. Usamos sin() para um movimento de vai e vem.
+            float t = (sin(time) + 1.0f) / 2.0f; 
+            
+            mesh.position = calculateBezierPoint(t, p0, p1, p2, p3);
+        }
+    }
 		renderMeshes(env.meshes, shaderID);
 
 		// 2. Se a opção estiver ativa, desenha as linhas por cima
@@ -577,8 +617,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 	// Muda o mesh ativo para transformação (tecla N) - só tem 2 meshes, então alterna entre 0 e 1
 	if (key == GLFW_KEY_N && action == GLFW_PRESS) {
-		active_mesh = (active_mesh + 1) % 2;
-	}
+    active_mesh = (active_mesh + 1) % total_meshes;
+}
 
 	// Ativa ou desativa a visualização em modo wireframe (tecla O).
 	if (key == GLFW_KEY_O && action == GLFW_PRESS) {
@@ -586,10 +626,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	}
 }
 
-//Esta função está basntante hardcoded - objetivo é compilar e "buildar" um programa de
-// shader simples e único neste exemplo de código
-// O código fonte do vertex e fragment shader está nos arrays vertexShaderSource e
-// fragmentShader source no iniçio deste arquivo
+
 // A função retorna o identificador do programa de shader
 int setupShader()
 {

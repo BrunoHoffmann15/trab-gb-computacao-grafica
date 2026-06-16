@@ -34,6 +34,8 @@ class Mesh {
         // Textura
         string texturePath; // Caminho para a textura do mesh
 
+        bool isAnimated = false; // Novo atributo na classe Mesh
+
         // Carrega um arquivo OBJ simples (sem texturas, apenas vértices, normais e cores) e preenche os buffers do mesh
         void loadObj(string filePath);
 
@@ -59,6 +61,13 @@ class Light {
 
 };
 
+struct CameraConfig {
+    glm::vec3 position;
+    float yaw;
+    float pitch;
+    float fov;
+};
+
 class Env {
 public:
     // Vetor com os meshes a serem renderizados
@@ -69,6 +78,10 @@ public:
 
     // Carregar o ambiente a partir de um arquivo JSON
     void loadEnvironment(string envPath);
+
+    void loadModelWithAssimp(string objPath, glm::vec3 pos, glm::vec3 rot, glm::vec3 scale, bool isAnimated);
+
+    CameraConfig cameraConfig;
 };
 
 #endif

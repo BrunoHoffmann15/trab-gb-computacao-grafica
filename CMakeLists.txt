@@ -68,6 +68,14 @@ if (NOT EXISTS ${GLAD_C_FILE})
     message(FATAL_ERROR "Arquivo glad.c não encontrado! Baixe a GLAD manualmente em [https://glad.dav1d.de/](https://glad.dav1d.de/) e coloque glad.h em include/glad/ e glad.c em common/")
 endif()
 
+# Verifica se os arquivos da GLAD estão no lugar
+if (NOT EXISTS ${GLAD_C_FILE})
+    message(FATAL_ERROR "Arquivo glad.c não encontrado! Baixe a GLAD manualmente em https://glad.dav1d.de/ e coloque glad.h em include/glad/ e glad.c em common/")
+endif()
+
+# Busca a biblioteca Assimp instalada no sistema
+find_package(assimp REQUIRED)
+
 # Cria os executáveis iterando sobre a lista de projetos
 foreach(EXERCISE ${EXERCISES})
     # Busca automaticamente todos os arquivos .cpp e .h dentro da pasta do projeto
@@ -83,5 +91,6 @@ foreach(EXERCISE ${EXERCISES})
     
     # Configura os includes e linka as bibliotecas
     target_include_directories(${EXERCISE} PRIVATE ${CMAKE_SOURCE_DIR}/include/glad ${glm_SOURCE_DIR} ${stb_image_SOURCE_DIR})
-    target_link_libraries(${EXERCISE} glfw ${OPENGL_LIBS})
+    
+    target_link_libraries(${EXERCISE} glfw ${OPENGL_LIBS} assimp)
 endforeach()
