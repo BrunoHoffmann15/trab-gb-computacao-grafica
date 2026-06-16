@@ -291,12 +291,6 @@ int main()
 		glUniform3f(glGetUniformLocation(shaderID, "lightPos"),env.light.position.x,env.light.position.y,env.light.position.z);
 		glUniform3f(glGetUniformLocation(shaderID, "lightColor"),env.light.color.x,env.light.color.y,env.light.color.z);
 
-		// Mandando variáveis de iluminação para o shader.
-		//glUniform1f(glGetUniformLocation(shaderID, "ka"),env.light.ka);
-		//glUniform1f(glGetUniformLocation(shaderID, "kd"),env.light.kd);
-		//glUniform1f(glGetUniformLocation(shaderID, "ks"),env.light.ks);
-		//glUniform1f(glGetUniformLocation(shaderID, "q"),env.light.q);
-
     
 		glUniformMatrix4fv(glGetUniformLocation(shaderID, "model"), 1, GL_FALSE, glm::value_ptr(model));
 		
