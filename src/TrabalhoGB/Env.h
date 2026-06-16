@@ -36,12 +36,6 @@ class Mesh {
 
         bool isAnimated = false; // Novo atributo na classe Mesh
 
-        // Carrega um arquivo OBJ simples (sem texturas, apenas vértices, normais e cores) e preenche os buffers do mesh
-        void loadObj(string filePath);
-
-        // Carrega um arquivo .MTL para obter as informações de material (ka, kd, ks, q) e cor do mesh
-        void loadMtl(string filePath);
-
         // Carrega texturas
         void loadTexture();
 
